@@ -15,9 +15,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install NASM
-        uses: ilammy/nasm@v1
-        with:
-          version: latest
+        run: choco install nasm -y
 
       - name: Build
         run: build.bat
