@@ -5,6 +5,7 @@ global main
 
 ; Win32 Tray & Window APIs
 extern GetModuleHandleA, RegisterClassA, CreateWindowExA, DefWindowProcA
+extern CreateMutexA, GetLastError, CloseHandle
 extern GetMessageA, TranslateMessage, DispatchMessageA, PostQuitMessage, DestroyWindow
 extern LoadIconA, Shell_NotifyIconA
 extern CreatePopupMenu, AppendMenuA, TrackPopupMenu, DestroyMenu, GetCursorPos, SetForegroundWindow
@@ -23,6 +24,9 @@ WM_TRAYICON         equ (WM_USER + 1)
 WM_RBUTTONUP        equ 0x0205
 WM_LBUTTONUP        equ 0x0202
 WM_DEVICECHANGE     equ 0x0219
+
+; Synchronization
+ERROR_ALREADY_EXISTS equ 183
 
 ; Menu IDs
 ID_TRAY_STARTUP     equ 1001
@@ -75,6 +79,7 @@ section .data
     szMenuStartup   db "Run on Startup", 0
     szMenuExit      db "Exit", 0
     szTip           db "Audio Keep Alive (Active)", 0
+    szMutexName     db "AudioKeepAlive", 0
 
     ; WAVEFORMATEX (PCM 44.1kHz Stereo 16-bit)
     wFormatTag      dw WAVE_FORMAT_PCM
@@ -89,6 +94,7 @@ section .data
 
 section .bss
     hInstance       resq 1
+    hMutex          resq 1
     hWnd            resq 1
     hIcon           resq 1
     hWaveOut        resq 1
@@ -108,6 +114,18 @@ section .text
 ; -------------------------------------------------------------
 main:
     sub rsp, 104
+
+    ; Single-instance guard: create a named mutex. If it already
+    ; exists, another instance is running, so exit immediately.
+    xor ecx, ecx                    ; lpMutexAttributes = NULL
+    mov edx, 1                      ; bInitialOwner = TRUE
+    lea r8, [szMutexName]           ; lpName
+    xor r9d, r9d
+    call CreateMutexA
+    mov [hMutex], rax
+    call GetLastError
+    cmp eax, ERROR_ALREADY_EXISTS
+    je .exit                        ; duplicate instance detected
 
     xor ecx, ecx
     call GetModuleHandleA
@@ -195,6 +213,8 @@ main:
     jmp .msg_loop
 
 .exit:
+    mov rcx, [hMutex]
+    call CloseHandle
     xor ecx, ecx
     call ExitProcess
 
