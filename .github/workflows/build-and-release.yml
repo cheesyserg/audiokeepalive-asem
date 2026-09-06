@@ -18,7 +18,7 @@ jobs:
         run: choco install nasm -y
 
       - name: Build
-        run: build.bat
+        run: cmd /c build.bat
 
       - name: Verify build artifact exists
         run: |
