@@ -22,11 +22,11 @@ jobs:
 
       - name: Verify build artifact exists
         run: |
-          if not exist "bin\AudioKeepAlive.exe" (
-            echo Build artifact not found!
-            exit /b 1
-          )
-          echo Build artifact verified.
+          if (!(Test-Path "bin\AudioKeepAlive.exe")) {
+            Write-Error "Build artifact not found!"
+            exit 1
+          }
+          Write-Host "Build artifact verified."
 
       - name: Upload release artifact
         uses: softprops/action-gh-release@v2
